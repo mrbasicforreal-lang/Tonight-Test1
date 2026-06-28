@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tonight Restaurant - Checkout Summary</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #0b0b0b; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+        header { text-align: center; margin-bottom: 2.5rem; }
+        header h1 { font-size: 2.5rem; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        .receipt-card, .payment-instructions-card { background: linear-gradient(145deg, #141414, #1c1c1c); border: 1px solid #2a2515; border-radius: 15px; width: 100%; max-width: 550px; padding: 2rem; box-shadow: 0 15px 30px rgba(0,0,0,0.5); margin-bottom: 1.5rem; }
+        .receipt-title { color: #d4af37; font-size: 1.3rem; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 0.8rem; margin-bottom: 1.5rem; letter-spacing: 1px; }
+        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem; }
+        .item-label { color: #a9a9a9; }
+        .item-value { font-weight: 600; color: #ffffff; text-align: right; }
+        .guest-header { color: #d4af37; font-size: 0.95rem; font-weight: 700; margin: 1.2rem 0 0.5rem 0; border-top: 1px solid #222; padding-top: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .custom-detail { font-size: 0.9rem; padding-left: 1rem; color: #fff; margin-bottom: 0.4rem; }
+        .instruction-box { background: #0b0b0b; border: 1px solid #333; border-radius: 8px; padding: 1rem; margin-top: 0.5rem; }
+        .instruction-text { color: #a9a9a9; font-size: 0.95rem; margin-bottom: 0.5rem; line-height: 1.4; }
+        .highlight-text { color: #d4af37; font-weight: 700; font-size: 1.1rem; }
+        .form-input { width: 100%; background: #0b0b0b; border: 1px solid #333; border-radius: 8px; padding: 0.8rem 1rem; color: #fff; font-size: 1rem; outline: none; margin-top: 0.5rem; }
+        .form-input:focus { border-color: #d4af37; }
+        .btn-container { width: 100%; max-width: 550px; display: flex; flex-direction: column; gap: 1rem; }
+        .btn { width: 100%; padding: 1rem; border: none; border-radius: 30px; font-size: 1.1rem; font-weight: 700; cursor: pointer; text-transform: uppercase; text-align: center; }
+        .btn-order { background: linear-gradient(135deg, #25D366, #128C7E); color: #ffffff; text-decoration: none; box-shadow: 0 5px 15px rgba(37, 211, 102, 0.2); display: flex; align-items: center; justify-content: center; }
+        .empty-message { text-align: center; color: #a9a9a9; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Official Receipt</h1>
+    </header>
+
+    <!-- Detailed Invoice Receipt Card -->
+    <div class="receipt-card" id="receiptCard"></div>
+
+    <!-- Dynamic Instruction Card for Digital Money Transfers -->
+    <div class="payment-instructions-card" id="instructionCard" style="display: none;">
+        <h3 style="color: #d4af37; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 0.8rem;">💸 Payment Verification</h3>
+        <div class="instruction-box" id="instructionDetailsBox"></div>
+        
+        <div style="margin-top: 1.5rem;" id="verificationInputGroup">
+            <label id="verificationInputLabel" style="display: block; color: #d4af37; font-size: 0.85rem; text-transform: uppercase; font-weight: 700;">Transfer Reference</label>
+            <input type="text" id="txtTransactionInfo" placeholder="01xxxxxxxxx" class="form-input">
+        </div>
+    </div>
+
+    <!-- Stable Dispatch Container -->
+    <div class="btn-container" id="actionButtons" style="display: none;">
+        <button class="btn btn-order" onclick="sendOrderToKitchen()">Confirm & Contact us via WhatsApp</button>
+    </div>
+    <script>
+        let cart = JSON.parse(localStorage.getItem('restaurantCart')) || [];
+        const receiptContainer = document.getElementById('receiptCard');
+        const instructionContainer = document.getElementById('instructionCard');
+        const instructionBox = document.getElementById('instructionDetailsBox');
+        const verificationGroup = document.getElementById('verificationInputGroup');
+        const verificationLabel = document.getElementById('verificationInputLabel');
+        const verificationInput = document.getElementById('txtTransactionInfo');
+        const actionsContainer = document.getElementById('actionButtons');
+
+        const RESTAURANT_WALLET_NUMBER = "01288310167"; 
+        const INSTAPAY_ADDRESS = "loayrafaat@instapay"; 
+
+        if (cart.length === 0) {
+            receiptContainer.innerHTML = '<div class="empty-message">No active configuration found in your session.</div>';
+        } else {
+            actionsContainer.style.display = 'flex';
+            instructionContainer.style.display = 'block';
+            const currentItem = cart[cart.length - 1];
+            
+            let htmlContent = `
+                <h2 class="receipt-title">Tonight Invoice</h2>
+                <div class="receipt-row"><span class="item-label">📅 Order Date:</span><span class="item-value">${currentItem.orderDate || ''}</span></div>
+                <div class="receipt-row" style="margin-bottom: 1.2rem; border-bottom: 1px dashed #333; padding-bottom: 0.6rem;"><span class="item-label">⏰ Order Time:</span><span class="item-value">${currentItem.orderTime || ''}</span></div>
+                
+                <div class="receipt-row"><span class="item-label">📦 Pack Category:</span><span class="item-value" style="color:#d4af37; font-weight:bold;">${currentItem.boxSize || ''} Pack</span></div>
+                <div class="receipt-row"><span class="item-label">💵 Base Price:</span><span class="item-value">EGP ${(currentItem.basePrice || 0).toFixed(2)}</span></div>
+                <div class="receipt-row" style="margin-bottom: 1.2rem; border-bottom: 1px dashed #333; padding-bottom: 0.6rem;"><span class="item-label">💳 Payment Method:</span><span class="item-value" style="color: #25D366;">${currentItem.paymentMethod || ''}</span></div>
+                
+                <div class="receipt-row" style="margin-top: 0.5rem;"><span class="item-label" style="color:#fff; font-weight:bold;">📍 Delivery Address Details:</span></div>
+                <div class="custom-detail" style="color:#aaa;">• Phone Number: ${currentItem.logisticDetails ? currentItem.logisticDetails.phone : ''}</div>
+                <div class="custom-detail" style="color:#aaa;">• Street Address: ${currentItem.logisticDetails ? currentItem.logisticDetails.address : ''}</div>
+                <div class="custom-detail" style="color:#aaa;">• Building Number: ${currentItem.logisticDetails ? currentItem.logisticDetails.building : ''}</div>
+                <div class="custom-detail" style="color:#aaa;">• Floor: ${currentItem.logisticDetails ? currentItem.logisticDetails.floor : ''} | Apartment: ${currentItem.logisticDetails ? currentItem.logisticDetails.apartment : ''}</div>
+            `;
+
+            if (currentItem.guests && Array.isArray(currentItem.guests)) {
+                currentItem.guests.forEach(g => {
+                    htmlContent += `
+                        <div class="guest-header">👤 Member: ${g.name || ''}</div>
+                        <div class="custom-detail" style="color: #d4af37;">• Savory Pie: ${g.bread || ''} (${g.spicy || ''})</div>
+                        <div class="custom-detail">• Drinks Choice: ${g.drink || 'None (Skipped)'}</div>
+                        <div class="custom-detail">• Sauces Choice: ${g.sauce || 'None (Skipped)'}</div>
+                    `;
+                });
+            }
+
+            htmlContent += `
+                <div class="receipt-row total-section" style="margin-top: 1.5rem; border-top: 1px solid #333; padding-top: 1rem;">
+                    <span class="item-label" style="font-weight:bold; font-size:1.1rem; color:#fff;">Grand Total:</span>
+                    <span class="item-value" style="color: #d4af37; font-size:1.2rem; font-weight:bold;">EGP ${(currentItem.finalPrice || 0).toFixed(2)}</span>
+                </div>
+            `;
+            receiptContainer.innerHTML = htmlContent;
+
+            if (currentItem.paymentMethod && currentItem.paymentMethod.includes('Wallet')) {
+                instructionBox.innerHTML = `
+                    <div class="instruction-text">Please send <span class="highlight-text">EGP ${(currentItem.finalPrice || 0).toFixed(2)}</span> via mobile wallet to:</div>
+                    <div class="highlight-text" style="font-size:1.3rem; margin: 0.5rem 0; text-align:center; background:#0b0b0b; padding:0.5rem; border-radius:6px; border:1px solid #333;">${RESTAURANT_WALLET_NUMBER}</div>
+                `;
+                verificationGroup.style.display = "block";
+                verificationLabel.innerText = "Your Wallet Number";
+                verificationInput.placeholder = "01xxxxxxxxx";
+            } else if (currentItem.paymentMethod && currentItem.paymentMethod === 'InstaPay') {
+                instructionBox.innerHTML = `
+                    <div class="instruction-text">Please transfer <span class="highlight-text">EGP ${(currentItem.finalPrice || 0).toFixed(2)}</span> via InstaPay to:</div>
+                    <div class="highlight-text" style="font-size:1.2rem; margin: 0.5rem 0; text-align:center; background:#0b0b0b; padding:0.5rem; border-radius:6px; border:1px solid #333;">${INSTAPAY_ADDRESS}</div>
+                `;
+                verificationGroup.style.display = "block";
+                verificationLabel.innerText = "Your InstaPay Handle";
+                verificationInput.placeholder = "username@instapay";
+            } else {
+                instructionBox.innerHTML = `
+                    <div class="instruction-text">Your payment is set to <span class="highlight-text" style="color:#25D366;">Cash on Delivery</span>.</div>
+                    <div class="instruction-text" style="font-size:0.95rem; margin-top:0.5rem; line-height:1.4;">Please prepare exactly <span class="highlight-text">EGP ${(currentItem.finalPrice || 0).toFixed(2)}</span> in cash. Our delivery rider will collect it at your doorstep!</div>
+                `;
+                verificationGroup.style.display = "none";
+            }
+        }
+        function sendOrderToKitchen() {
+            if (!cart || cart.length === 0) {
+                alert("No active order found in session!");
+                return;
+            }
+            const currentItem = cart[cart.length - 1];
+            let senderInfo = "Cash Order (Collect on Delivery)";
+            
+            if (currentItem.paymentMethod && !currentItem.paymentMethod.includes('Cash')) {
+                if (verificationInput) {
+                    senderInfo = verificationInput.value.trim();
+                }
+                if (!senderInfo) {
+                    alert("Please enter your payment transfer verification details!");
+                    return;
+                }
+            }
+
+            let text = `*🆕 NEW OFFICIAL BUSINESS ORDER - TONIGHT*\n` +
+                       `📅 *DATE:* ${currentItem.orderDate || ''} | ⏰ *TIME:* ${currentItem.orderTime || ''}\n` +
+                       `💰 *TOTAL DUE:* EGP ${(currentItem.finalPrice || 0).toFixed(2)}\n` +
+                       `💳 *PAYMENT:* ${currentItem.paymentMethod || ''}\n` +
+                       `🔍 *VERIFICATION ID:* ${senderInfo}\n` +
+                       `----------------------------------------\n` +
+                       `📦 *PACK CATEGORY:* ${currentItem.boxSize || ''} Pack\n` +
+                       `----------------------------------------\n` +
+                       `📍 *DELIVERY LOGISTICS:*\n` +
+                       `• *Phone:* ${currentItem.logisticDetails ? currentItem.logisticDetails.phone : ''}\n` +
+                       `• *Address:* ${currentItem.logisticDetails ? currentItem.logisticDetails.address : ''}\n` +
+                       `• *Building:* ${currentItem.logisticDetails ? currentItem.logisticDetails.building : ''}\n` +
+                       `• *Floor:* ${currentItem.logisticDetails ? currentItem.logisticDetails.floor : ''} | *Apartment:* ${currentItem.logisticDetails ? currentItem.logisticDetails.apartment : ''}\n` +
+                       `----------------------------------------\n` +
+                       `🛒 *KITCHEN PREPARATION CHECKLIST:*\n`;
+
+            if (currentItem.guests && Array.isArray(currentItem.guests)) {
+                currentItem.guests.forEach((g, idx) => {
+                    text += `\n*👤 GUEST #${idx + 1}: ${g.name || ''}*\n` +
+                            `• *Savory Pie:* ${g.bread || ''} (${g.spicy || ''})\n` +
+                            `• *Drinks:* ${g.drink || 'None (Skipped)'}\n` +
+                            `• *Sauces:* ${g.sauce || 'None (Skipped)'}\n`;
+                });
+            }
+
+            text += `----------------------------------------\n` +
+                    `• *Standard Pack Inclusions:* Included & Packed`;
+
+            // 🎯 NEW REFACTOR: Copies your beautiful text receipt to clipboard natively
+            navigator.clipboard.writeText(text).then(function() {
+                // 🚀 REDIRECTS DIRECTLY TO YOUR SHORT LINK WITH ZERO LAG
+                window.location.href = "https://wa.link/h2x16i";
+            }).catch(function(err) {
+                // Fallback wrapper if clipboard permissions are restricted on the browser
+                window.location.href = "https://wa.link/h2x16i";
+            });
+        }
+    </script>
+</body>
+</html>

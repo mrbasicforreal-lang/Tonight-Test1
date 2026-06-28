@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tonight Restaurant - Customize Friends Pack</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #0b0b0b; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+        header { text-align: center; margin-bottom: 2rem; }
+        header h1 { font-size: 2.5rem; color: #d4af37; text-transform: uppercase; letter-spacing: 2px; }
+        .back-btn { display: inline-block; margin-top: 1rem; color: #d4af37; text-decoration: none; border: 1px solid #d4af37; padding: 0.5rem 1rem; border-radius: 5px; }
+        
+        .box-container { position: relative; width: 100%; max-width: 600px; margin-bottom: 2rem; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8); z-index: 5; }
+        .box-base-img { width: 100%; height: auto; display: block; }
+        
+        .hotspot { position: absolute; background: rgba(212, 175, 55, 0); border: 2px solid transparent; transition: all 0.3s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
+        .hotspot.interactive { border: 1px dashed rgba(212, 175, 55, 0.4); background: rgba(212, 175, 55, 0.02); animation: borderGlow 2s infinite alternate; }
+        .hotspot.interactive:hover { background: rgba(212, 175, 55, 0.12); border-color: #d4af37; box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.3); }
+        .hotspot.interactive::before { content: '👆 Tap'; position: absolute; bottom: 6px; font-size: 0.65rem; background: #0b0b0b; color: #d4af37; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #d4af37; pointer-events: none; opacity: 0.75; }
+        
+        @keyframes borderGlow {
+            0% { border-color: rgba(212, 175, 55, 0.3); box-shadow: 0 0 5px rgba(212, 175, 55, 0.1); }
+            100% { border-color: rgba(212, 175, 55, 0.8); box-shadow: 0 0 12px rgba(212, 175, 55, 0.2); }
+        }
+
+        .hotspot.fixed { cursor: default; }
+        .pack-included-badge { position: absolute; background: #222; border: 1px solid #444; color: #aaa; font-size: 0.6rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; top: 6px; left: 6px; text-transform: uppercase; pointer-events: none; }
+        .free-tooltip { position: absolute; background: rgba(11, 11, 11, 0.95); border: 1px solid #d4af37; color: #ffffff; font-size: 0.75rem; font-weight: 600; padding: 6px 12px; border-radius: 6px; pointer-events: none; opacity: 0; transition: all 0.3s ease; transform: translateY(10px); white-space: nowrap; z-index: 15; box-shadow: 0 5px 15px rgba(0,0,0,0.6); }
+        .hotspot.fixed:hover .free-tooltip { opacity: 1; transform: translateY(0); }
+        
+        .choice-badge { position: absolute; background: rgba(11, 11, 11, 0.95); border: 2px solid #25D366; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; max-width: 90%; text-align: center; pointer-events: none; text-transform: uppercase; opacity: 0; transition: opacity 0.3s ease; top: 30%; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .choice-badge.active { opacity: 1; }
+
+        .hs-cutlery { top: 9.5%; left: 13.5%; width: 73.5%; height: 13.5%; }
+        .hs-drink   { top: 24.5%; left: 13.5%; width: 35.5%; height: 16.5%; }
+        .hs-cookies { top: 24.5%; left: 51%;   width: 36%;   height: 14%; }
+        .hs-bread   { top: 40.5%; left: 51.5%; width: 35%;   height: 19.5%; }
+        .hs-popcorn { top: 42.5%; left: 13.5%; width: 35.5%; height: 26.5%; }
+        .hs-pancake { top: 70.5%; left: 13.5%; width: 19%;   height: 19%; border-radius: 50%; }
+        .hs-sauce   { top: 70.5%; left: 34.5%; width: 15%;   height: 15%; }
+        .hs-snacks  { top: 62.5%; left: 51%;   width: 36%;   height: 27%; }
+
+        .input-card { width: 100%; max-width: 550px; background: #141414; border: 1px solid #2a2515; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; position: relative; z-index: 5; }
+        .form-label { display: block; color: #d4af37; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.4rem; font-weight: 700; letter-spacing: 0.5px; }
+        .form-input { width: 100%; background: #0b0b0b; border: 1px solid #333; border-radius: 8px; padding: 0.7rem 1rem; color: #fff; font-size: 0.95rem; outline: none; margin-bottom: 1rem; }
+        .form-input:focus { border-color: #d4af37; }
+        .address-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+        .pay-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+        .pay-btn { background: #0b0b0b; border: 1px solid #333; border-radius: 8px; padding: 0.8rem 0.2rem; color: #a9a9a9; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
+        .btn-submit { background: linear-gradient(135deg, #d4af37, #aa841c); color: #0b0b0b; font-size: 1.1rem; font-weight: 700; padding: 1rem; border: none; border-radius: 30px; cursor: pointer; width: 100%; max-width: 550px; text-transform: uppercase; margin-bottom: 3rem; position: relative; z-index: 5; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: none; align-items: center; justify-content: center; z-index: 99999; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #141414; border: 2px solid #d4af37; border-radius: 16px; width: 95%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.9); display: flex; flex-direction: column; max-height: 85vh; overflow: hidden; }
+        .popup-list-container { display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; padding: 1.5rem; }
+        
+        .item-horizontal-row { background: #1c1c1c; border: 1px solid #333; border-radius: 10px; display: flex; align-items: center; padding: 0.75rem 1rem; gap: 1rem; width: 100%; transition: border-color 0.2s; }
+        .item-horizontal-row.selected { border-color: #d4af37; background: rgba(212, 175, 55, 0.03); }
+        .row-item-img { width: 60px; height: 60px; object-fit: contain; border-radius: 6px; background: #0b0b0b; padding: 2px; border: 1px solid #222; flex-shrink: 0; }
+        .row-item-info { flex-grow: 1; display: flex; flex-direction: column; gap: 2px; }
+        .row-item-name { font-size: 1rem; font-weight: 600; color: #ffffff; }
+        
+        .row-counter-controls { display: flex; align-items: center; background: #0b0b0b; border: 1px solid #333; border-radius: 6px; padding: 2px; gap: 0.5rem; flex-shrink: 0; }
+        .action-ctrl-btn { background: #1c1c1c; border: 1px solid #d4af37; color: #d4af37; width: 32px; height: 32px; border-radius: 4px; font-size: 1.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .action-ctrl-btn:hover { background: #d4af37; color: #0b0b0b; }
+        .action-ctrl-num { font-size: 1.05rem; font-weight: bold; color: #ffffff; min-width: 25px; text-align: center; }
+        
+        .spice-btn { background: #1c1c1c; border: 1px solid #333; color: #fff; padding: 0.8rem; border-radius: 8px; cursor: pointer; width: 100%; text-align: center; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; margin-bottom: 0.5rem; }
+        .spice-btn.active-spicy { border-color: #ff3b30; background: rgba(255, 59, 48, 0.1); color: #ff3b30; }
+        .spice-btn.active-normal { border-color: #25D366; background: rgba(37, 211, 102, 0.1); color: #25D366; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="mainPackHeading">Friends Pack (Base EGP 800.00)</h1>
+        <a href="index.html" class="back-btn">← Change Box Size</a>
+    </header>
+
+    <div class="box-container">
+        <img src="List.png" alt="Friends Box Frame" class="box-base-img">
+        <div class="hotspot fixed hs-cutlery"><span class="pack-included-badge">Included</span></div>
+        <div class="hotspot fixed hs-cookies"><span class="pack-included-badge">Included</span></div>
+        <div class="hotspot fixed hs-popcorn"><span class="pack-included-badge">Included</span></div>
+        <div class="hotspot fixed hs-pancake"><span class="pack-included-badge">Included</span></div>
+        <div class="hotspot fixed hs-snacks"><span class="pack-included-badge">Included</span></div>
+
+        <div class="hotspot interactive hs-drink" onclick="openModal('drink')"><div class="choice-badge" id="lbl-drink">Select Drink</div></div>
+        <div class="hotspot interactive hs-bread" onclick="openModal('bread')"><div class="choice-badge" id="lbl-bread">Select Savory Pie</div></div>
+        <div class="hotspot interactive hs-sauce" onclick="openModal('sauce')"><div class="choice-badge" id="lbl-sauce">Select Sauce</div></div>
+    </div>
+
+    <div class="input-card" id="formWrapperCard">
+        <label id="currentGuestLabelText" class="form-label" style="font-size:1rem; border-bottom:1px solid #333; padding-bottom:0.4rem; margin-bottom:1rem;">👤 Guest 1 / 3</label>
+        <label class="form-label" id="nameInputLabel">Guest 1 Name</label>
+        <input type="text" id="txtGuestNameField" placeholder="Enter name here..." class="form-input">
+        
+        <div id="logisticsGroupBlock" style="display: none; margin-top: 0.5rem;">
+            <label class="form-label">📞 Mobile Phone Number (Required)</label>
+            <input type="tel" id="txtPhone" placeholder="01xxxxxxxxx" class="form-input">
+            <label class="form-label">📍 Street Address / Area</label>
+            <input type="text" id="txtAddress" placeholder="Enter delivery street address" class="form-input">
+            <div class="address-row">
+                <div><label class="form-label">🏢 Bldg No.</label><input type="text" id="txtBuilding" placeholder="e.g. 14" class="form-input"></div>
+                <div><label class="form-label">🔢 Floor No.</label><input type="text" id="txtFloor" placeholder="e.g. 3" class="form-input"></div>
+                <div><label class="form-label">🚪 Apt No.</label><input type="text" id="txtApartment" placeholder="e.g. 12" class="form-input"></div>
+            </div>
+            <div style="margin-top: 0.5rem;">
+                <label class="form-label">💳 Select Payment Method</label>
+                <div class="pay-grid">
+                    <button type="button" id="btnPay-Wallet" class="pay-btn" onclick="selectPaymentType('Wallet (Vodafone/Orange)')">Wallet</button>
+                    <button type="button" id="btnPay-InstaPay" class="pay-btn" onclick="selectPaymentType('InstaPay')">InstaPay</button>
+                    <button type="button" id="btnPay-Cash" class="pay-btn" onclick="selectPaymentType('Cash on Delivery')">Cash on Delivery</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-submit" onclick="handleNextActionTrigger()"><span id="actionBtnTextLabel">Next Guest ➔</span></button>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; background: #1a1a1a;">
+                <h3 id="modalTitle" style="color: #d4af37; text-transform: uppercase; font-size: 1.1rem; margin: 0; letter-spacing: 0.5px;">Select Option</h3>
+                <button type="button" onclick="closeModal()" style="background: transparent; border: none; color: #888; font-size: 1.6rem; cursor: pointer; font-weight: bold; line-height: 1;">&times;</button>
+            </div>
+            <div id="spiceToggleWrapper" style="padding: 1.2rem 1.5rem 0 1.5rem;"></div>
+            <div class="popup-list-container" id="optionsContainer"></div>
+            <div style="padding: 1.2rem 1.5rem; background: #1c1c1c; border-top: 1px solid #222; display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeModal()" style="padding: 0.6rem 1.2rem; background: #333; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+                <button type="button" onclick="confirmSelection()" style="padding: 0.6rem 1.2rem; background: #d4af37; color: #0b0b0b; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Confirm Choice</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // 🎯 STABLE SOURCE DIRECTORY MATRIX FOR 3 GUESTS
+        const menuOptions = {
+            drink: { title: " Choose Drinks (+40 EGP each)", items: ["Vcola", "Vcola diet", "Red Bull"], images: ["Vcola.png", "Vcola-Diet.png", "Redbull.png"], pieFlag: false },
+            bread: { title: " Select Savory Pie Type (فطاير)", items: ["Sausage Pie", "Pastrami Pie"], images: ["", ""], pieFlag: true },
+            sauce: { title: " Select Sauces (+25 EGP each)", items: ["Chocolate", "White Chocolate", "Lotus", "Pistachio", "Kinder"], images: ["", "", "", "", ""], pieFlag: false }
+        };
+
+        const totalGuestsCount = 3; const baseBoxPackPrice = 800.00;
+        let currentActiveGuestIdx = 1; let currentSlot = ''; let selectedPaymentMethod = ""; let selectedSpiceOption = "Normal";
+        let compiledGuestsData = [];
+        
+        let currentGuestSelections = { 
+            bread: "None Selected", spicy: "Normal", 
+            drinkQuantities: { "Vcola": 0, "Vcola diet": 0, "Red Bull": 0 },
+            sauceQuantities: { "Chocolate": 0, "White Chocolate": 0, "Lotus": 0, "Pistachio": 0, "Kinder": 0 }
+        };
+        let activePopupQuantities = {}; let tempSingleSelection = "";
+
+        function startGuestTurnSetup() {
+            document.getElementById('currentGuestLabelText').innerText = `👤 Guest ${currentActiveGuestIdx} / ${totalGuestsCount}`;
+            document.getElementById('nameInputLabel').innerText = `Guest ${currentActiveGuestIdx} Name`;
+            document.getElementById('txtGuestNameField').value = "";
+            document.querySelectorAll('.choice-badge').forEach(b => {
+                b.innerText = b.id.includes('bread') ? "Select Savory Pie" : (b.id.includes('drink') ? "Select Drink" : "Select Sauce");
+                b.classList.remove('active');
+            });
+            currentGuestSelections = { 
+                bread: "None Selected", spicy: "Normal", 
+                drinkQuantities: { "Vcola": 0, "Vcola diet": 0, "Red Bull": 0 },
+                sauceQuantities: { "Chocolate": 0, "White Chocolate": 0, "Lotus": 0, "Pistachio": 0, "Kinder": 0 }
+            };
+            selectedSpiceOption = "Normal";
+            if (currentActiveGuestIdx === totalGuestsCount) {
+                document.getElementById('logisticsGroupBlock').style.display = "block";
+                document.getElementById('actionBtnTextLabel').innerText = "Confirm Entire Pack";
+            }
+        }
+
+        function openModal(slot) {
+            currentSlot = slot; const data = menuOptions[slot];
+            document.getElementById('modalTitle').innerText = data.title;
+            const container = document.getElementById('optionsContainer');
+            const spiceWrapper = document.getElementById('spiceToggleWrapper');
+            container.innerHTML = ''; spiceWrapper.innerHTML = '';
+            
+            if (data.pieFlag) {
+                spiceWrapper.innerHTML = `<button type="button" class="spice-btn ${selectedSpiceOption === 'Spicy🌶️' ? 'active-spicy' : 'active-normal'}" onclick="toggleSpiceFlavor()">${selectedSpiceOption === 'Spicy🌶️' ? '🔥 Flavor: Spicy🌶️' : '🍏 Flavor: Normal'}</button>`;
+                tempSingleSelection = currentGuestSelections.bread === "None Selected" ? "" : currentGuestSelections.bread;
+                
+                data.items.forEach((item, index) => {
+                    const rowCard = document.createElement('div');
+                    rowCard.className = 'item-horizontal-row' + (tempSingleSelection === item ? ' selected' : '');
+                    rowCard.style.cursor = 'pointer';
+                    rowCard.onclick = () => {
+                        document.querySelectorAll('.item-horizontal-row').forEach(r => r.classList.remove('selected'));
+                        rowCard.classList.add('selected');
+                        tempSingleSelection = item;
+                    };
+                    const imgAsset = data.images[index] ? `<img src="${data.images[index]}" class="row-item-img">` : `<div class="row-item-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🥧</div>`;
+                    rowCard.innerHTML = `${imgAsset}<div class="row-item-info"><span class="row-item-name">${item}</span></div>`;
+                    container.appendChild(rowCard);
+                });
+            } else {
+                activePopupQuantities = {}; 
+                const liveSavedSource = slot === 'drink' ? currentGuestSelections.drinkQuantities : currentGuestSelections.sauceQuantities;
+                
+                data.items.forEach((item, index) => {
+                    activePopupQuantities[item] = liveSavedSource[item] || 0;
+                    const hashedId = btoa(item).replace(/=/g, '');
+                    const rowCard = document.createElement('div');
+                    rowCard.className = 'item-horizontal-row' + (activePopupQuantities[item] > 0 ? ' selected' : '');
+                    rowCard.id = 'row-' + hashedId;
+                    
+                    const imgAsset = data.images[index] ? `<img src="${data.images[index]}" class="row-item-img">` : `<div class="row-item-img" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🍫</div>`;
+                    
+                    rowCard.innerHTML = `
+                        ${imgAsset}
+                        <div class="row-item-info"><span class="row-item-name">${item}</span></div>
+                        <div class="row-counter-controls">
+                            <button type="button" class="action-ctrl-btn" onclick="modifyPopupCount('${item}', -1)">-</button>
+                            <span class="action-ctrl-num" id="popup-qty-${hashedId}">${activePopupQuantities[item]}</span>
+                            <button type="button" class="action-ctrl-btn" onclick="modifyPopupCount('${item}', 1)">+</button>
+                        </div>
+                    `;
+                    container.appendChild(rowCard);
+                });
+            }
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function toggleSpiceFlavor() {
+            selectedSpiceOption = selectedSpiceOption === "Normal" ? "Spicy🌶️" : "Normal";
+            const btn = document.querySelector('.spice-btn');
+            btn.className = selectedSpiceOption === "Spicy🌶️" ? "spice-btn active-spicy" : "spice-btn active-normal";
+            btn.innerText = selectedSpiceOption === "Spicy🌶️" ? "🔥 Flavor: Spicy🌶️" : "🍏 Flavor: Normal";
+        }
+
+        function modifyPopupCount(item, amount) {
+            const hashedId = btoa(item).replace(/=/g, '');
+            let val = activePopupQuantities[item] || 0; val += amount; if (val < 0) val = 0; activePopupQuantities[item] = val;
+            document.getElementById(`popup-qty-${hashedId}`).innerText = val;
+            const cardRow = document.getElementById(`row-${hashedId}`);
+            if (val > 0) cardRow.classList.add('selected'); else cardRow.classList.remove('selected');
+        }
+
+        function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+        function confirmSelection() {
+            if (currentSlot === 'bread') {
+                currentGuestSelections.bread = tempSingleSelection || "None Selected"; 
+                currentGuestSelections.spicy = selectedSpiceOption;
+                document.getElementById('lbl-bread').innerText = currentGuestSelections.bread + ` (${selectedSpiceOption})`; 
+                document.getElementById('lbl-bread').classList.add('active');
+            } else {
+                let labels = []; 
+                const targetQuantities = currentSlot === 'drink' ? currentGuestSelections.drinkQuantities : currentGuestSelections.sauceQuantities;
+                
+                for (const [item, qty] of Object.entries(activePopupQuantities)) { 
+                    targetQuantities[item] = qty; 
+                    if (qty > 0) labels.push(`${qty}x ${item}`); 
+                }
+                
+                const str = labels.join(', '); 
+                const badge = document.getElementById(`lbl-${currentSlot}`);
+                if (str !== "") { 
+                    badge.innerText = str; 
+                    badge.classList.add('active'); 
+                } else { 
+                    badge.innerText = currentSlot === 'drink' ? "Select Drink" : "Select Sauce"; 
+                    badge.classList.remove('active'); 
+                }
+            }
+            closeModal();
+        }
+
+        function selectPaymentType(method) {
+            selectedPaymentMethod = method; 
+            document.querySelectorAll('.pay-btn').forEach(btn => { 
+                btn.style.borderColor = '#333'; btn.style.background = '#0b0b0b'; btn.style.color = '#a9a9a9'; 
+            });
+            let activeId = 'btnPay-Cash'; 
+            if (method.startsWith('Wallet')) activeId = 'btnPay-Wallet'; 
+            else if (method === 'InstaPay') activeId = 'btnPay-InstaPay';
+            const activeBtn = document.getElementById(activeId); 
+            if(activeBtn) { 
+                activeBtn.style.borderColor = '#d4af37'; 
+                activeBtn.style.background = 'rgba(212, 175, 55, 0.1)'; 
+                activeBtn.style.color = '#d4af37'; 
+            }
+        }
+
+        function handleNextActionTrigger() {
+            const guestName = document.getElementById('txtGuestNameField').value.trim();
+            if (!guestName) { alert(`Please enter a name for Guest ${currentActiveGuestIdx}!`); return; }
+            if (currentGuestSelections.bread === "None Selected") { alert("Please select your Savory Pie!"); return; }
+            
+            let finalDrinks = []; let finalSauces = [];
+            for (const [item, qty] of Object.entries(currentGuestSelections.drinkQuantities)) { if (qty > 0) finalDrinks.push(`${qty}x ${item}`); }
+            for (const [item, qty] of Object.entries(currentGuestSelections.sauceQuantities)) { if (qty > 0) finalSauces.push(`${qty}x ${item}`); }
+
+            compiledGuestsData.push({
+                name: guestName, bread: currentGuestSelections.bread, spicy: currentGuestSelections.spicy,
+                drink: finalDrinks.join(', '), sauce: finalSauces.join(', '),
+                drinkQuantities: Object.assign({}, currentGuestSelections.drinkQuantities),
+                sauceQuantities: Object.assign({}, currentGuestSelections.sauceQuantities)
+            });
+
+            if (currentActiveGuestIdx < totalGuestsCount) {
+                currentActiveGuestIdx++; startGuestTurnSetup();
+            } else {
+                const phone = document.getElementById('txtPhone').value.trim(); 
+                const address = document.getElementById('txtAddress').value.trim(); 
+                const building = document.getElementById('txtBuilding').value.trim(); 
+                const floor = document.getElementById('txtFloor').value.trim(); 
+                const apartment = document.getElementById('txtApartment').value.trim();
+                
+                if (!phone || !address || !building || !floor || !apartment) { 
+                    alert("Please complete all delivery address fields!"); 
+                    compiledGuestsData.pop(); 
+                    return; 
+                }
+                if (!selectedPaymentMethod) { 
+                    alert("Please select your Payment Method!"); 
+                    compiledGuestsData.pop(); 
+                    return; 
+                }
+                
+                let extraCosts = 0;
+                compiledGuestsData.forEach(g => {
+                    for (const [item, qty] of Object.entries(g.drinkQuantities)) { extraCosts += qty * 40; }
+                    for (const [item, qty] of Object.entries(g.sauceQuantities)) { extraCosts += qty * 25; }
+                });
+
+                const now = new Date(); 
+                const orderDateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); 
+                const orderTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                const finalBoxItem = {
+                    boxSize: "Friends", 
+                    basePrice: baseBoxPackPrice, 
+                    finalPrice: baseBoxPackPrice + extraCosts, 
+                    paymentMethod: selectedPaymentMethod, 
+                    orderDate: orderDateStr, 
+                    orderTime: orderTimeStr, 
+                    logisticDetails: { phone, address, building, floor, apartment }, 
+                    guests: compiledGuestsData
+                };
+                
+                let queue = JSON.parse(localStorage.getItem('restaurantCart')) || []; 
+                queue.push(finalBoxItem); 
+                localStorage.setItem('restaurantCart', JSON.stringify(queue)); 
+                window.location.href = "checkout.html";
+            }
+        }
+        startGuestTurnSetup();
+    </script>
+</body>
+</html>

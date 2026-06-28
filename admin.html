@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tonight Restaurant - Live Kitchen Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #0b0b0b; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+        header { text-align: center; margin-bottom: 2.5rem; width: 100%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2515; padding-bottom: 1rem; }
+        header h1 { font-size: 2rem; color: #d4af37; text-transform: uppercase; letter-spacing: 1px; }
+        .admin-badge { background: #5a1818; color: #ffb3b3; font-size: 0.75rem; font-weight: bold; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; }
+        
+        .queue-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.5rem; width: 100%; max-width: 1200px; }
+        
+        .order-card { background: linear-gradient(145deg, #141414, #1c1c1c); border: 2px solid #2a2515; border-radius: 12px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .card-header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 0.8rem; margin-bottom: 1rem; }
+        .pack-title { color: #d4af37; font-size: 1.2rem; text-transform: uppercase; font-weight: 700; }
+        .price-tag { color: #ffffff; font-weight: bold; font-size: 1.1rem; }
+        
+        .logistics-section { background: #0b0b0b; padding: 0.8rem; border-radius: 6px; border: 1px solid #222; margin-bottom: 1rem; font-size: 0.9rem; line-height: 1.4; }
+        .logistics-title { color: #888; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 0.4rem; }
+        .logistics-text { color: #fff; font-weight: 600; }
+        
+        .kitchen-checklist { margin-top: 0.5rem; flex-grow: 1; }
+        .checklist-title { color: #d4af37; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin: 1rem 0 0.5rem 0; font-weight: 700; border-top: 1px solid #222; padding-top: 0.5rem; }
+        .guest-row-title { font-size: 0.9rem; font-weight: bold; color: #d4af37; margin: 0.8rem 0 0.4rem 0; text-transform: uppercase; }
+        
+        .check-item { background: #1c1c1c; border: 1px solid #333; border-radius: 6px; padding: 0.6rem 0.8rem; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center; }
+        .check-item.included { border-color: #222; background: #161616; opacity: 0.5; }
+        .item-text { font-size: 0.9rem; font-weight: 600; color: #fff; }
+        
+        .status-badge { font-size: 0.65rem; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .status-badge.spicy { background: rgba(255, 59, 48, 0.15); color: #ff3b30; border: 1px solid #ff3b30; }
+        .status-badge.normal { background: rgba(37, 211, 102, 0.15); color: #25D366; border: 1px solid #25D366; }
+        .status-badge.addon { background: rgba(212, 175, 55, 0.15); color: #d4af37; border: 1px solid #d4af37; }
+        .status-badge.auto { background: #262626; color: #888; }
+        
+        .btn-complete { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #5a1818, #3a1010); border: 1px solid #ffb3b3; color: #ffb3b3; border-radius: 6px; font-size: 0.95rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s ease; margin-top: 1.2rem; }
+        .btn-complete:hover { background: #7a2222; transform: scale(1.01); }
+        .no-orders { text-align: center; color: #a9a9a9; font-size: 1.2rem; padding: 4rem 0; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Kitchen Dispatch Queue</h1>
+        <span class="admin-badge">Tonight Monitor</span>
+    </header>
+
+    <!-- Multi-Ticket Dispatch Grid -->
+    <div class="queue-grid" id="queueMonitorGrid">
+        <!-- Live chronological order tickets render here dynamically -->
+    </div>
+    <script>
+        let ordersList = JSON.parse(localStorage.getItem('restaurantCart')) || [];
+        const queueGrid = document.getElementById('queueMonitorGrid');
+
+        function renderDashboardGrid() {
+            if (ordersList.length === 0) {
+                queueGrid.innerHTML = '<div class="no-orders">📭 Kitchen queue is currently empty. Waiting for incoming orders...</div>';
+                return;
+            }
+            
+            let accumulatedTicketsHtml = '';
+
+            // Loop through every single active ticket remaining inside memory array stack
+            ordersList.forEach((currentBox, index) => {
+                let guestBreakdownHtml = '';
+                
+                // Build explicit item breakdown strings loops per member turn logs
+                currentBox.guests.forEach((g, gIdx) => {
+                    const isSpicy = g.spicy.includes('Spicy');
+                    
+                    guestBreakdownHtml += `
+                        <div class="guest-row-title">👤 Member #${gIdx + 1}: ${g.name}</div>
+                        <div class="check-item">
+                            <span class="item-text">🥧 Savory Pie: ${g.bread}</span>
+                            <span class="status-badge ${isSpicy ? 'spicy' : 'normal'}">${g.spicy}</span>
+                        </div>
+                    `;
+                    
+                    if (g.drink) {
+                        guestBreakdownHtml += `
+                            <div class="check-item">
+                                <span class="item-text">🥤 Drinks: ${g.drink}</span>
+                                <span class="status-badge addon">+40 EGP</span>
+                            </div>
+                        `;
+                    }
+                    if (g.sauce) {
+                        guestBreakdownHtml += `
+                            <div class="check-item">
+                                <span class="item-text">🍫 Sauces: ${g.sauce}</span>
+                                <span class="status-badge addon">+25 EGP</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                accumulatedTicketsHtml += `
+                    <div class="order-card">
+                        <div class="card-header-row">
+                            <span class="pack-title">Order #_TN${index + 1} (${currentBox.boxSize})</span>
+                            <span class="price-tag" style="color:#d4af37;">EGP ${currentBox.finalPrice.toFixed(2)}</span>
+                        </div>
+                        
+                        <!-- Customer Dispatch Logistics Ticket -->
+                        <div class="logistics-section">
+                            <div class="logistics-title">⏰ Timestamp Details</div>
+                            <div class="logistics-text" style="margin-bottom:0.5rem; font-size:0.85rem; color:#a9a9a9;">Received: ${currentBox.orderDate} @ ${currentBox.orderTime}</div>
+                            
+                            <div class="logistics-title">📍 Dispatch Logistics</div>
+                            <div class="logistics-text">📞 Call: ${currentBox.logisticDetails.phone}</div>
+                            <div class="logistics-text" style="font-size:0.85rem; color:#aaa; font-weight:normal; margin-top:0.2rem;">
+                                ${currentBox.logisticDetails.address}<br>
+                                Bldg ${currentBox.logisticDetails.building} | Floor ${currentBox.logisticDetails.floor} | Apt ${currentBox.logisticDetails.apartment}
+                            </div>
+                            <div class="logistics-text" style="margin-top:0.4rem; font-size:0.8rem; color:#25D366;">💳 Method: ${currentBox.paymentMethod}</div>
+                        </div>
+
+                        <!-- Production Prep Checklist Core -->
+                        <div class="kitchen-checklist">
+                            <div class="checklist-title">🍳 Production Assembly</div>
+                            ${guestBreakdownHtml}
+                            
+                            <div class="checklist-title">Box Pack Standard Inclusions</div>
+                            <div class="check-item included"><span class="item-text">🍴 Cutlery Sets</span><span class="status-badge auto">Pack Std</span></div>
+                            <div class="check-item included"><span class="item-text">🍿 Signature Popcorn Bag</span><span class="status-badge auto">Pack Std</span></div>
+                            <div class="check-item included"><span class="item-text">🍪 Chocolate Cookies</span><span class="status-badge auto">Pack Std</span></div>
+                            <div class="check-item included"><span class="item-text">🥞 Mini Pancake Trays</span><span class="status-badge auto">Pack Std</span></div>
+                            <div class="check-item included"><span class="item-text">🍿 Extra Treats Snack Bags</span><span class="status-badge auto">Pack Std</span></div>
+                        </div>
+                        
+                        <!-- Complete Order Action Button Link -->
+                        <button class="btn-complete" onclick="dismissIndividualTicket(${index})">Dispatch & Clear Ticket</button>
+                    </div>
+                `;
+            });
+            
+            queueGrid.innerHTML = accumulatedTicketsHtml;
+        }
+
+        function dismissIndividualTicket(targetIndex) {
+            if (confirm(`Clear order #_TN${targetIndex + 1} from the active monitor queue?`)) {
+                ordersList.splice(targetIndex, 1);
+                localStorage.setItem('restaurantCart', JSON.stringify(ordersList));
+                renderDashboardGrid();
+            }
+        }
+
+        renderDashboardGrid();
+    </script>
+</body>
+</html>
